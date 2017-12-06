@@ -38,6 +38,9 @@ public class GithubQuerier {
             Date date = inFormat.parse(creationDate);
             String formatted = outFormat.format(date);
 
+            // Get list of commits for current PushEvent
+            JSONArray pushEvents = event.getJSONObject("payload").getJSONArray("commits");
+
             // Add type of event as header
             sb.append("<h3 class=\"type\">");
             sb.append(type);
@@ -46,6 +49,17 @@ public class GithubQuerier {
             sb.append(" on ");
             sb.append(formatted);
             sb.append("<br />");
+            // Add list of commits with their SHA and commit message
+            sb.append("Commits:");
+            sb.append("<br />");
+            JSONObject pushEvent;
+            for (int j = 0; j < pushEvents.length(); j++) {
+                pushEvent = pushEvents.getJSONObject(j);
+                sb.append(pushEvent.getString("sha").substring(0, 8));
+                sb.append(": ");
+                sb.append(pushEvent.getString("message"));
+                sb.append("<br />");
+            }
             // Add collapsible JSON textbox (don't worry about this for the homework; it's just a nice CSS thing I like)
             sb.append("<a data-toggle=\"collapse\" href=\"#event-" + i + "\">JSON</a>");
             sb.append("<div id=event-" + i + " class=\"collapse\" style=\"height: auto;\"> <pre>");

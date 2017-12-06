@@ -27,10 +27,6 @@ public class GithubQuerier {
             JSONObject event = response.get(i);
             // Get event type
             String type = event.getString("type");
-            // Get push events only
-            if (!type.equals("PushEvent")) {
-                continue;
-            }
             // Get created_at date, and format it in a more pleasant style
             String creationDate = event.getString("created_at");
             SimpleDateFormat inFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss'Z'");
@@ -72,13 +68,35 @@ public class GithubQuerier {
 
     private static List<JSONObject> getEvents(String user) throws IOException {
         List<JSONObject> eventList = new ArrayList<JSONObject>();
-        String url = BASE_URL + user + "/events";
-        System.out.println(url);
-        JSONObject json = Util.queryAPI(new URL(url));
-        System.out.println(json);
-        JSONArray events = json.getJSONArray("root");
-        for (int i = 0; i < events.length() && i < 10; i++) {
-            eventList.add(events.getJSONObject(i));
+        String baseUrl = BASE_URL + user + "/events";
+        int page = 1;
+        int pushEventCount = 0;
+        // while there are more pages being returned and we have not received 10 pushEvents yet
+        while (true) {
+            String paginatedURL = baseUrl + "?page=" + String.valueOf(page);
+            System.out.println(paginatedURL);
+            JSONObject json = Util.queryAPI(new URL(paginatedURL));
+            System.out.println(json);
+            JSONArray events = json.getJSONArray("root");
+            // if nothing is returned, stop getting events
+            if (events.length() == 0) {
+                break;
+            }
+            for (int i = 0; i < events.length(); i++) {
+                JSONObject event = events.getJSONObject(i);
+                // Get event type
+                String type = event.getString("type");
+                // Get push events only
+                if (!type.equals("PushEvent")) {
+                    continue;
+                }
+                eventList.add(event);
+                pushEventCount++;
+                if (pushEventCount == 10) {
+                    return eventList;
+                }
+            }
+            page++;
         }
         return eventList;
     }

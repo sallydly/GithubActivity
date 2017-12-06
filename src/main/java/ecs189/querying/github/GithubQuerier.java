@@ -27,6 +27,10 @@ public class GithubQuerier {
             JSONObject event = response.get(i);
             // Get event type
             String type = event.getString("type");
+            // Get push events only
+            if (!type.equals("PushEvent")) {
+                continue;
+            }
             // Get created_at date, and format it in a more pleasant style
             String creationDate = event.getString("created_at");
             SimpleDateFormat inFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss'Z'");

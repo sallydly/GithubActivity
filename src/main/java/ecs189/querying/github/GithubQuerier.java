@@ -34,6 +34,9 @@ public class GithubQuerier {
             Date date = inFormat.parse(creationDate);
             String formatted = outFormat.format(date);
 
+            // Get list of commits for current PushEvent
+            JSONArray pushEvents = event.getJSONObject("payload").getJSONArray("commits");
+
             // Add type of event as header
             sb.append("<h3 class=\"type\">");
             sb.append(type);
@@ -42,6 +45,17 @@ public class GithubQuerier {
             sb.append(" on ");
             sb.append(formatted);
             sb.append("<br />");
+            // Add list of commits with their SHA and commit message
+            sb.append("Commits:");
+            sb.append("<br />");
+            JSONObject pushEvent;
+            for (int j = 0; j < pushEvents.length(); j++) {
+                pushEvent = pushEvents.getJSONObject(j);
+                sb.append(pushEvent.getString("sha").substring(0, 8));
+                sb.append(": ");
+                sb.append(pushEvent.getString("message"));
+                sb.append("<br />");
+            }
             // Add collapsible JSON textbox (don't worry about this for the homework; it's just a nice CSS thing I like)
             sb.append("<a data-toggle=\"collapse\" href=\"#event-" + i + "\">JSON</a>");
             sb.append("<div id=event-" + i + " class=\"collapse\" style=\"height: auto;\"> <pre>");
@@ -54,13 +68,35 @@ public class GithubQuerier {
 
     private static List<JSONObject> getEvents(String user) throws IOException {
         List<JSONObject> eventList = new ArrayList<JSONObject>();
-        String url = BASE_URL + user + "/events";
-        System.out.println(url);
-        JSONObject json = Util.queryAPI(new URL(url));
-        System.out.println(json);
-        JSONArray events = json.getJSONArray("root");
-        for (int i = 0; i < events.length() && i < 10; i++) {
-            eventList.add(events.getJSONObject(i));
+        String baseUrl = BASE_URL + user + "/events";
+        int page = 1;
+        int pushEventCount = 0;
+        // while there are more pages being returned and we have not received 10 pushEvents yet
+        while (true) {
+            String paginatedURL = baseUrl + "?page=" + String.valueOf(page);
+            System.out.println(paginatedURL);
+            JSONObject json = Util.queryAPI(new URL(paginatedURL));
+            System.out.println(json);
+            JSONArray events = json.getJSONArray("root");
+            // if nothing is returned, stop getting events
+            if (events.length() == 0) {
+                break;
+            }
+            for (int i = 0; i < events.length(); i++) {
+                JSONObject event = events.getJSONObject(i);
+                // Get event type
+                String type = event.getString("type");
+                // Get push events only
+                if (!type.equals("PushEvent")) {
+                    continue;
+                }
+                eventList.add(event);
+                pushEventCount++;
+                if (pushEventCount == 10) {
+                    return eventList;
+                }
+            }
+            page++;
         }
         return eventList;
     }

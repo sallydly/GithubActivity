@@ -6,7 +6,7 @@ services:
   ng:
     ports:
      - "8888:8888"
-    image: ng
+    image: nginx
     links:
      - activity
 
